@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>无人机集群自主控制仿真平台</title>
+    <link rel="shortcut icon" type="image/x-icon" href="static/images/uav.ico" media="screen"/>
+    <link rel="stylesheet" href="static/css/bootstrap.css"/>
+    <link rel="stylesheet" href="static/css/bootstrap-theme.css"/>
+    <link rel="stylesheet" href="static/css/index.css"/>
+    <script type="text/javascript" src="static/css/jquery-3.2.1.js"></script>
+    <script type="text/javascript" src="static/css/bootstrap.js"></script>
+</head>
+<body>
+<!-- 导航栏 -->
+<nav class="navbar navbar-default">
+    <div class="container">
+        <!-- 小屏幕导航按钮和logo -->
+        <div class="navbar-header">
+            <button class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="formation.html" class="navbar-brand">无人机集群自主控制仿真平台</a>
+        </div>
+        <div class="navbar-collapse collapse">
+            <ul class="nav navbar-nav navbar-right">
+                <li>
+                    <a href="formation.html">集群编队</a>
+                </li>
+                <li>
+                    <a href="massiveUAV.html">集群仿真</a>
+                </li>
+                <li>
+                    <a href="search.html">协同搜索</a>
+                </li>
+                <li>
+                    <a href="deploy.html">干扰部署</a>
+                </li>
+                <li>
+                    <a href="switch.html">信号开关</a>
+                </li>
+                <li class="active">
+                    <a href="fake.html">假目标策略</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+<!-- 导航栏end -->
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- 左侧空栏 -->
+        <div class="col-md-1"></div>
+        <!-- canvas绘图区 -->
+        <div class="col-md-7" id="main" style="height: 85vh; ">
+        </div>
+        <div class="col-md-3">
+            <!-- 任务初始化面板 -->
+            <div class="panel panel-success">
+                <div class="panel-heading" data-toggle="collapse" data-target="#mission_conf">任务生成 <span
+                        class="glyphicon glyphicon-triangle-bottom pull-right"></span></div>
+                <div class="collapse" id="mission_conf">
+                    <div class="panel-body">
+                        <div class="form-group form-inline">
+                            <label class="control-label" for="true_target_num">真目标数：</label>
+                            <input type="number" class="form-control" id="true_target_num" value="4">
+                        </div>
+                        <div class="form-group form-inline">
+                            <label for="fixTrueTarget" class="control-label">固定真目标：</label>
+                            <select class="form-control" id="fixTrueTarget">
+                                <option value="1" >是</option>
+                                <option value="0" selected>否</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label" for="true_target_locations">真目标分布：</label>
+                            <textarea class="form-control" id="true_target_locations" cols="20" rows="3">
+                                [{"x":617.8,"y":172.1},{"x":273.6,"y":231.4},{"x":72.7,"y":231.7},{"x":244.8,"y":535.9}]
+                            </textarea>
+                        </div>
+                        <button id="init_btn" class="btn btn-primary center-block" value="">重新生成
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!--  实验配置面板 -->
+            <div class="panel panel-warning">
+                <div class="panel-heading" data-toggle="collapse" data-target="#simulation_conf">实验配置 <span
+                        class="glyphicon glyphicon-triangle-bottom pull-right"></span></div>
+                <div class="collapse in" id="simulation_conf">
+                    <div class="panel-body">
+                        <div class="form-group form-inline">
+                            <label class="control-label" for="uav_num">无人机数：</label>
+                            <input type="number" class="form-control" id="uav_num" value="4">
+                        </div>
+                        <div class="form-group form-inline">
+                            <label class="control-label" for="fake_target_num">假目标数：</label>
+                            <input type="number" class="form-control" id="fake_target_num" value="3">
+                        </div>
+                        <div class="form-group form-inline">
+                            <label class="control-label" for="method">算法选择：</label>
+                            <select class="form-control" id="method">
+                                <option value="BBO">生物地理学算法</option>
+                                <option value="PSO">标准PSO</option>
+                                <option value="CLPSO" selected>CLPSO</option>
+                                <option value="Base">基准测试</option>
+                            </select>
+                        </div>
+                        <div class="form-group form-inline">
+                            <label class="control-label" for="init_X">初始X坐标：</label>
+                            <input type="number" class="form-control" id="init_X" placeholder="默认为200">
+                        </div>
+                        <div class="form-group form-inline">
+                            <label class="control-label" for="init_Y">初始Y坐标：</label>
+                            <input type="number" class="form-control" id="init_Y" placeholder="默认为200">
+                        </div>
+                        <div class="form-group form-inline">
+                            <label class="control-label" for="particle_num">种群个数：</label>
+                            <input type="number" class="form-control" id="particle_num" placeholder="默认为20">
+                        </div>
+                        <div class="form-group form-inline">
+                            <label class="control-label" for="iter_num">迭代次数：</label>
+                            <input type="number" class="form-control" id="iter_num" placeholder="默认为10000">
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label" for="fake_target_locations">假目标分布：</label>
+                            <textarea class="form-control" id="fake_target_locations" cols="20" rows="3"></textarea>
+                        </div>
+                        <div class="progress">
+                            <div id="progress_bar" class="progress-bar" role="progressbar" style="min-width: 2em;width: 0%">
+                                0%
+                            </div>
+                        </div>
+                        <div class="form-group form-inline">
+                            <button style="display: none" id="start_btn" class="btn btn-primary center-block" value="">开始仿真
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- 数据监控面板 -->
+            <div class="panel panel-info">
+                <div class="panel-heading" data-toggle="collapse" data-target="#data_conf">数据监控 <span
+                        class="glyphicon glyphicon-triangle-bottom pull-right"></span></div>
+                <div class="collapse" id="data_conf">
+                    <div class="panel-body">
+                        <div class="form-group">
+                            <div id="monitor" class="center-block"></div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label" for="data">数据导出</label>
+                            <textarea class="form-control" id="data" cols="20" rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">数据导出：</label>
+                            <div class="dropdown inline">
+                                <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1"
+                                        data-toggle="dropdown">
+                                    请选择复制项
+                                    <span class="caret"></span>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a href="#" id="copyVelBtn"
+                                           data-clipboard-text="">复制速度</a></li>
+                                    <li><a href="#" id="copyPosBtn"
+                                           data-clipboard-text="">复制位置</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-1"></div>
+    </div>
+</div>
+<script>
+    $(function () {
+        // 预先执行的js语句
+        // 给手风琴控件增加事件，当一个空间显示，则关闭其他的
+        $('.collapse').on('show.bs.collapse', function () {
+            // 隐藏所有的控件
+            $('.collapse').collapse('hide');
+        });
+    });
+
+    // 设置监控器大小
+    var monitorSize = $(".col-md-3").width();
+    $("#monitor").css({"width": monitorSize, "height": monitorSize});
+</script>
+</body>
+
+</html>

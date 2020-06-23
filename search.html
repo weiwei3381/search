@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>无人机集群自主控制仿真平台</title>
+    <link rel="shortcut icon" type="image/x-icon" href="static/images/uav.ico" media="screen"/>
+    <link rel="stylesheet" href="static/css/bootstrap.css"/>
+    <link rel="stylesheet" href="static/css/bootstrap-theme.css"/>
+    <link rel="stylesheet" href="static/css/index.css"/>
+    <script type="text/javascript" src="static/js/common/jquery-3.2.1.js"></script>
+    <script type="text/javascript" src="static/js/common/echarts-4.0.1.js"></script>
+    <script type="text/javascript" src="static/js/common/numeric-1.2.6.js"></script>
+    <script type="text/javascript" src="static/js/common/echarts-4.0.1.js"></script>
+    <script type="text/javascript" src="static/js/common/bootstrap.js" charset="utf-8"></script>
+    <script type="text/javascript" src="static/js/common/Mash.js" charset="utf-8"></script>
+    <script type="text/javascript" src="static/js/common/MRG32k3a.js"></script>
+    <script type="text/javascript" src="static/js/common/clipboard.js"></script>
+    <script type="text/javascript" src="static/js/vector.js" charset="utf-8"></script>
+    <script type="text/javascript" src="static/js/fps.js"></script>
+    <script type="text/javascript" src="static/js/vehicle.js" charset="utf-8"></script>
+    <script type="text/javascript" src="static/js/search.js" charset="utf-8"></script>
+</head>
+<body>
+<!-- 导航栏 -->
+<nav class="navbar navbar-default">
+    <div class="container">
+        <!-- 小屏幕导航按钮和logo -->
+        <div class="navbar-header">
+            <button class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="formation.html" class="navbar-brand">无人机集群自主控制仿真平台</a>
+        </div>
+        <div class="navbar-collapse collapse">
+            <ul class="nav navbar-nav navbar-right">
+                <li>
+                    <a href="formation.html">集群编队</a>
+                </li>
+                <li>
+                    <a href="massiveUAV.html">集群仿真</a>
+                </li>
+                <li class="active">
+                    <a href="search.html">协同搜索</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+<!-- 导航栏end -->
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- 左侧空栏 -->
+        <div class="col-md-1"></div>
+        <!-- canvas绘图区 -->
+        <div class="col-md-7">
+            <canvas id="main" style="background-color: #132c3d;margin-left: 10%;">
+            </canvas>
+        </div>
+        <div class="col-md-3">
+            <!-- 任务初始化面板 -->
+            <div class="panel panel-success">
+                <div class="panel-heading" data-toggle="collapse" data-target="#mission_conf">任务生成 <span
+                        class="glyphicon glyphicon-triangle-bottom pull-right"></span></div>
+                <div class="collapse" id="mission_conf">
+                    <div class="panel-body">
+                        <div class="form-group form-inline">
+                            <label class="control-label" for="gridSize">网格划分：</label>
+                            <input type="number" class="form-control" id="gridSize" placeholder="默认为10个">
+                        </div>
+                        <div class="form-group form-inline">
+                            <label class="control-label" for="targetNum">可能目标：</label>
+                            <input type="number" class="form-control" id="targetNum" placeholder="默认为6个">
+                        </div>
+                        <div class="form-group form-inline">
+                            <label class="control-label" for="clusterNum">聚类数量：</label>
+                            <input type="number" class="form-control" id="clusterNum" placeholder="默认为5个">
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label" for="randomValue">目标分布：</label>
+                        <textarea class="form-control" id="randomValue" cols="20" rows="3">
+                        </textarea>
+                        </div>
+                        <button id="init_btn" class="btn btn-primary center-block" value=""
+                                onclick="simulation.missionRebuild()">重新生成
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!--  实验配置面板 -->
+            <div class="panel panel-warning">
+                <div class="panel-heading" data-toggle="collapse" data-target="#simulation_conf">仿真实验配置 <span
+                        class="glyphicon glyphicon-triangle-bottom pull-right"></span></div>
+                <div class="collapse in" id="simulation_conf">
+                    <div class="panel-body">
+                        <div class="form-group form-inline">
+                            <label class="control-label" for="theme">背景颜色：</label>
+                            <select class="form-control" id="theme">
+                                <option value="dark" selected>深色</option>
+                                <option value="white">浅色</option>
+                            </select>
+                        </div>
+                        <div class="form-group form-inline">
+                            <label class="control-label" for="method">算法选择：</label>
+                            <select class="form-control" id="method">
+                                <option value="greedy">分布式贪婪算法</option>
+                                <option value="cmeans">C均值聚类算法</option>
+                                <option value="dynamic" selected>连通域动态聚类算法</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="checkbox">
+                                <label>
+                                    <input type="checkbox" id="showReturn" checked> 显示回报率
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="checkbox">
+                                <label>
+                                    <input type="checkbox" id="showZero"> 联通化结果
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="checkbox">
+                                <label>
+                                    <input type="checkbox" id="showTree"> 显示树形情况
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="checkbox">
+                                <label>
+                                    <input type="checkbox" id="showCluster"> 显示聚类情况
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group form-inline">
+                            <label class="control-label" for="object">增加对象类型：</label>
+                            <select class="form-control" id="object">
+                                <option value="leader" selected>领航者</option>
+                            </select>
+                        </div>
+                        <button id="start_btn" class="btn btn-primary center-block" value=""
+                                onclick="simulation.pauseOrRun()">开始仿真
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- 数据监控面板 -->
+            <div class="panel panel-warning">
+                <div class="panel-heading" data-toggle="collapse" data-target="#data_conf">数据监控 <span
+                        class="glyphicon glyphicon-triangle-bottom pull-right"></span></div>
+                <div class="collapse" id="data_conf">
+                    <div class="panel-body">
+                        <div class="form-group">
+                            <label class="control-label">数据导出：</label>
+
+                            <div class="dropdown inline">
+                                <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1"
+                                        data-toggle="dropdown">
+                                    请选择复制项
+                                    <span class="caret"></span>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a href="#" id="copyVelBtn" onclick="simulation.copyVelHistory()"
+                                           data-clipboard-text="">复制速度</a></li>
+                                    <li><a href="#" id="copyPosBtn" onclick="simulation.copyPosHistory()"
+                                           data-clipboard-text="">复制位置</a></li>
+                                    <li><a href="#" id="copyReturnBtn" onclick="simulation.copyEvalution()"
+                                           data-clipboard-text="">复制回报率</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div id="monitor"  class="center-block"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- 弹出信息 -->
+            <div class="alert alert-danger" style="display: none;" id="copy_message">
+                已经复制到剪贴板
+            </div>
+        </div>
+        <div class="col-md-1"></div>
+    </div>
+</div>
+</body>
+<script>
+
+    $(function () {
+        // 预先执行的js语句
+        // 去除目标分布字符串的左右空格
+        var rand_value = $("#randomValue").val();
+        rand_value = rand_value.replace(/(^\s*)|(\s*$)/g, "");
+        $("#randomValue").val(rand_value);
+
+        // 给手风琴控件增加事件，当一个空间显示，则关闭其他的
+        $('.collapse').on('show.bs.collapse', function () {
+            // 隐藏所有的控件
+            $('.collapse').collapse('hide');
+        });
+
+        // 给body增加一个改变事件,其他元素会冒泡到这里
+        $("body").on('change', simulation.setup);
+    });
+
+    // 设置监控器大小
+    var monitorSize = $(".col-md-3").width();
+    $("#monitor").css({"width": monitorSize, "height": monitorSize});
+
+</script>
+
+</html>

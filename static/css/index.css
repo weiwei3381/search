@@ -1,0 +1,66 @@
+html {
+    height: 100%;
+}
+
+body {
+    padding-top: 0px;
+    height: 100%;
+    position: relative;
+    font-size: 13px;
+}
+
+.col-md-1{
+    width: 5%;
+}
+.col-md-7{
+    width: 65%;
+}
+.col-md-3{
+    width: 25%;
+}
+
+/* 标题栏大小 */
+.navbar {
+    min-height: 40px;
+    max-height: 50px;
+    margin-bottom: 10px;
+}
+
+/* 标题logo的字体情况 */
+.navbar-default .navbar-brand {
+    font-size: 22px;
+    font-weight: bold;
+    color: #337ab7;
+    letter-spacing: 0.02em;
+}
+
+.navbar-nav li a
+{
+    color: #337cb9!important;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+/* 面板大小 */
+.panel-body {
+    padding: 10px 15px;
+}
+/* 每个选项组下端空白 */
+.form-group {
+    margin-bottom: 10px;
+}
+.panel-heading:hover{
+    cursor: pointer;
+}
+.checkbox{
+    margin-top: 0px;
+}
+
+input.form-control{
+    width: 50%!important;
+}
+/* 行内格式 */
+.inline {
+    display: inline;
+}
+
