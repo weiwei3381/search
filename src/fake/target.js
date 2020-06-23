@@ -1,11 +1,15 @@
 import Vector from "../common/calc/vector"
 
 class Target {
-    constructor(id, x, y) {
-        // 目标的id值
-        this.id = id;
-        // 目标的所处位置
-        this.pos = new Vector(x, y);
+    constructor({id, position, v, angel, zlevel, onMove}) {
+        this.id = id;  // 目标的id值
+        this.position = new Vector(position);  // 目标的所处位置
+        this.v = v  // 目标速度
+        this.angle = angel  // 目标朝向
+        this.zlevel = zlevel  // 所处canvas层
+        this.onMove = onMove  // onmove函数
+        this.shapeType = 'star'  // 形状类型
+
         // 目标是否正在被无人机搜索
         this.is_find = false;
         // 初始颜色
@@ -18,6 +22,27 @@ class Target {
         this.is_adjust = true;
     }
 
+    get shape(){
+        return {
+            shape  : 'star',
+            id     : '123456',
+            zlevel : 1,
+            style  : {
+                x : 200,
+                y : 100,
+                r : 150,
+                n : 5,
+                color : '#eee'
+            },
+            myName : 'kener',   // 可自带任何有效自定义属性
+
+            clickable : true,
+            onClick : function(eventPacket) {
+                alert(eventPacket.target.myName);
+            }
+        }
+    }
+
     /**
      * 绘制目标,为五角星样式
      * @param canvas
@@ -25,7 +50,7 @@ class Target {
     draw(canvas) {
         let ctx = canvas.getContext("2d");
         ctx.save();
-        ctx.translate(this.pos.x, this.pos.y);
+        ctx.translate(this.position.x, this.position.y);
         // 绘制五角星
         ctx.beginPath();
         //设置五个顶点的坐标，根据顶点制定路径
@@ -52,8 +77,8 @@ class Target {
      */
     toSimpleObj() {
         return {
-            x: this.pos.x,
-            y: this.pos.y
+            x: this.position.x,
+            y: this.position.y
         };
     }
 
@@ -89,7 +114,7 @@ class FakeTarget extends Target {
     draw(canvas) {
         let ctx = canvas.getContext("2d");
         ctx.save();
-        ctx.translate(this.pos.x, this.pos.y);
+        ctx.translate(this.position.x, this.position.y);
         // 绘制五角星
         ctx.beginPath();
         ctx.beginPath();

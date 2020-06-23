@@ -1,5 +1,6 @@
 import {UAV} from '../model/UAV'
 import Cell from '../model/Cell'
+import {Target} from '../model/Target'
 import Grid from '../storage/grid'
 import config from '../config'
 
@@ -15,19 +16,10 @@ export default class Storage {
         this._changedZlevel = {} // 有数据改变的zlevel
 
 
-
         this._flock = {}  // 无人机群
         this._targets = {}  // 所有目标
         this._radars = {}   // 所有雷达类目标
         this._obstacles = {}  // 所有障碍物类目标
-    }
-
-    getFlock() {
-        return this._flock
-    }
-
-    getGrid(){
-        return this._grid
     }
 
     /**
@@ -42,17 +34,28 @@ export default class Storage {
         // 设置默认属性, 然后用params将其覆盖
         const prop = {
             position: [0, 0],
-            angel: 0,
-            zlevel: 0,
+            angle: 0,
+            zlevel: 2,
             v: 0,
             ...params
         }
-        // 创建新元素
-        const _element = new UAV(prop)
-        // 增加元素
-        this.addElement(params.id, _element)
-        // 在无人机群中增加元素
-        this._flock[params.id] = _element
+        const uav = new UAV(prop)  // 创建无人机
+        this.addElement(params.id, uav)  // 在元素集合中增加uav
+        this._flock[params.id] = uav  // 在无人机群中增加uav
+    }
+
+    addTarget(params) {
+        // 覆盖默认属性
+        const prop = {
+            position: [0, 0],
+            angle: 0,
+            v: 0,
+            zlevel: 1,
+            ...params
+        }
+        const target = new Target(prop)
+        this.addElement(params.id, target)  // 增加元素
+        this._targets[params.id] = target
     }
 
     // 初始化网格
@@ -105,25 +108,6 @@ export default class Storage {
         e.__needTransform = true;
         // 更新最大z层
         this._maxZlevel = Math.max(this._maxZlevel, e.zlevel);
-    }
-
-
-    getMaxZlevel() {
-        return this._maxZlevel;
-    }
-
-    getChangedZlevel() {
-        return this._changedZlevel;
-    }
-
-    clearChangedZlevel() {
-        this._changedZlevel = {};
-        return this;
-    }
-
-    setChangedZlevle(level) {
-        this._changedZlevel[level] = true;
-        return this;
     }
 
     /**
@@ -195,5 +179,37 @@ export default class Storage {
 
 
         }
+    }
+
+   // 下面开始是一堆get/set方法
+
+    getFlock() {
+        return this._flock
+    }
+
+    getGrid() {
+        return this._grid
+    }
+
+    getTargets(){
+        return this._targets
+    }
+
+    getMaxZlevel() {
+        return this._maxZlevel;
+    }
+
+    getChangedZlevel() {
+        return this._changedZlevel;
+    }
+
+    clearChangedZlevel() {
+        this._changedZlevel = {};
+        return this;
+    }
+
+    setChangedZlevle(level) {
+        this._changedZlevel[level] = true;
+        return this;
     }
 }

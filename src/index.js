@@ -5,7 +5,7 @@ import simulation from './simulation'
 const si = simulation.init(document.getElementById('main'))
 si.storage.addUAV({
     id: si.storage.newId(),
-    zlevel: 1,
+    zlevel: 2,
     position: [0, 0],  // 无人机位置
     angle: 0,
     v: 0,
@@ -14,14 +14,29 @@ si.storage.addUAV({
 
 si.storage.addUAV({
     id: si.storage.newId(),
-    zlevel: 1,
+    zlevel: 2,
     position: [0, 500],  // 无人机位置
     angle: 0,
     v: 0,
     strategy: 'random',
 })
-
+// 初始化网格
 si.storage.initGrid(si.painter.getWidth(), si.painter.getHeight())
+
+si.storage.addTarget({
+    id: si.storage.newId(),
+    position: [300, 300],
+    zlevel: 1,
+    v: 0,
+    angle: 0,
+    // 改变速度大小和方向的方法
+    changeMove(step){
+        if(step % 200 === 0){  // 每隔200次迭代修改一次
+            this.v = Math.random() * 0.3
+            this.angle = Math.random() * 360
+        }
+    }
+})
 
 // 也可以采用simulation.addUAV, addTarget等方法, 将单独配置传入
 const option = {
@@ -30,14 +45,14 @@ const option = {
         {
             id: `uav_1`,
             position: [0, 0],  // 无人机位置
-            angel: 0,
+            angle: 0,
             v: 0,
             strategy: 'random',
         },
         {
             id: `uav_1`,
             position: [0, 500],  // 无人机位置
-            angel: 0,
+            angle: 0,
             v: 0,
             strategy: 'random',
         }
