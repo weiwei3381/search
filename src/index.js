@@ -6,20 +6,38 @@ const si = simulation.init(document.getElementById('main'))
 si.storage.addUAV({
     id: si.storage.newId(),
     zlevel: 2,
-    position: [0, 0],  // 无人机位置
+    position: [300, 300],  // 无人机位置
     angle: 0,
-    v: 0,
+    v: 2,
     strategy: 'random',
 })
 
-si.storage.addUAV({
-    id: si.storage.newId(),
-    zlevel: 2,
-    position: [0, 500],  // 无人机位置
-    angle: 0,
-    v: 0,
-    strategy: 'random',
-})
+// si.storage.addUAV({
+//     id: si.storage.newId(),
+//     zlevel: 2,
+//     position: [0, 400],  // 无人机位置
+//     angle: 0,
+//     v: 1,
+//     strategy: 'random',
+// })
+//
+// si.storage.addUAV({
+//     id: si.storage.newId(),
+//     zlevel: 2,
+//     position: [0, 100],  // 无人机位置
+//     angle: 0,
+//     v: 1,
+//     strategy: 'random',
+// })
+//
+// si.storage.addUAV({
+//     id: si.storage.newId(),
+//     zlevel: 2,
+//     position: [0, 500],  // 无人机位置
+//     angle: 0,
+//     v: 1,
+//     strategy: 'random',
+// })
 // 初始化网格
 si.storage.initGrid(si.painter.getWidth(), si.painter.getHeight())
 

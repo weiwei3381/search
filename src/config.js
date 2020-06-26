@@ -1,15 +1,18 @@
 export default {
     // 固定翼无人机设置
-    aerocraft: {
-        max_speed: 2.5,  // 最大速度
-        min_speed: 0.8,  // 维持飞行的最小速度
-        navigate_speed: 2.5,  // 巡航速度
-        max_push_force: 0.35, // 前进最大加速度
-        max_steer_force: 0.055  // 转向最大加速度
+    uav: {
+        maxSpeed: 1.75,              // 最大速度
+        minSpeed: 0.4,               // 维持飞行的最小速度
+        navigateSpeed: 1.25,         // 巡航速度
+        maxPushForce: 0.17,          // 前进最大加速度
+        maxSteerForce: 0.02,         // 转向最大加速度
+
+        sepRange: 60,                // 周围无人机进入多少范围进行规避
+        detectRange: 100,            // 目标探测范围
     },
 
-    gridSize: [10,10],  // 缺省网格数量
-    catchBrushException: false,     // 是否捕获图形绘制的错误
+    gridSize: [10,10],               // 缺省网格数量
+    catchBrushException: false,      // 是否捕获图形绘制的错误
     /**
      * debug日志选项：catchBrushException为true下有效
      * 0 : 不生成debug数据，发布用

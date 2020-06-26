@@ -190,12 +190,12 @@ export default class Painter{
                     ) {
                         if (this.catchBrushException) {
                             try {
-                                shape.get(e.shapeType).brush(ctx, e, false, this.update);
+                                shape.get(e.shape.shape).brush(ctx, e, false, this.update);
                             } catch (error) {
                                 logger.log(error, 'brush error of ' + e.shape, e);
                             }
                         } else {
-                            var currentShape = shape.get(e.shapeType)
+                            var currentShape = shape.get(e.shape.shape)
                             currentShape.brush(ctx, e.shape, false, this.update);
                         }
                     }

@@ -8,7 +8,6 @@ class Target {
         this.angle = angel  // 目标朝向
         this.zlevel = zlevel  // 所处canvas层
         this.onMove = onMove  // onmove函数
-        this.shapeType = 'star'  // 形状类型
 
         // 目标是否正在被无人机搜索
         this.is_find = false;

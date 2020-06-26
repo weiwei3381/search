@@ -5,7 +5,6 @@ export default class Cell {
     constructor({id, x, y, width, height}){
         this.id = id;  // 一个单元格的编号
         this.zlevel = 0  // z层
-        this.shapeType = 'rectangle'
         this.leftTop = [x,y]  // 网格左上角单元坐标点
         this.width = width  // 格子宽
         this.height = height  // 网格高

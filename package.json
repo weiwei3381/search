@@ -22,6 +22,7 @@
     "webpack-dev-server": "^3.11.0"
   },
   "dependencies": {
-    "buckets-js": "^1.98.2"
+    "buckets-js": "^1.98.2",
+    "numeric": "^1.2.6"
   }
 }

@@ -7,51 +7,44 @@ import config from '../config'
  */
 export class UAV {
     constructor({id, position, angle, zlevel}) {
-        // 无人机ID号
-        this.id = id;
-        // 无人机位置
-        this.position = new Vector(position);
-        // 经过的位置值
-        this._pos_history = new buckets.Queue();
-        // 无人机绘制大小
-        this.size = 1;
-        // 无人机绘制所处的层次
-        this.zlevel = zlevel
-        this.shapeType = 'uav'
+        this.id = id;  // 无人机ID号
+        this.position = new Vector(position);  // 无人机位置
+        this._pos_history = new buckets.Queue();  // 经过的位置值
+        this.size = 1;  // 无人机绘制大小
+        this.zlevel = zlevel  // 无人机绘制所处的层次
         this.angle = angle
+        this._orientPool = {}  // 无人机朝向合集
 
         // 从配置项中取得无人机参数
         const {
-            max_speed, min_speed, navigate_speed,
-            max_push_force, max_steer_force
-        } = config.aerocraft
-        // 极限最大速度
-        this.max_speed = max_speed;
-        // 极限最小速度
-        this.min_speed = min_speed;
-        // 巡航速度
-        this.navigate_speed = navigate_speed;
-        // 水平最大加速度
-        this.max_push_force = max_push_force;
-        // 法向最大加速度
-        this.max_steer_force = max_steer_force;
+            maxSpeed, minSpeed, navigateSpeed,
+            maxPushForce, maxSteerForce
+        } = config.uav
+        // 配置无人机飞行参数
+        this.maxSpeed = maxSpeed; // 极限最大速度
+        this.minSpeed = minSpeed; // 极限最小速度
+        this.navigateSpeed = navigateSpeed; // 巡航速度
+        this.maxPushForce = maxPushForce; // 水平最大加速度
+        this.maxSteerForce = maxSteerForce; // 法向最大加速度
         // 无人机初始速度
-        const PI = Math.PI;
-        let vel_x = Math.sin(angle / 180 * PI) * this.navigate_speed;  // x方向的初始速度大小为巡航速度
-        let vel_y = Math.cos(angle / 180 * PI) * this.navigate_speed;  // y方向的初始速度大小为巡航速度
+        let vel_x = Math.sin(angle / 180 * Math.PI) * this.navigateSpeed;  // x方向的初始速度大小为巡航速度
+        let vel_y = Math.cos(angle / 180 * Math.PI) * this.navigateSpeed;  // y方向的初始速度大小为巡航速度
         let init_vel = new Vector(vel_x, vel_y);
-        this.vel = init_vel.limit(this.max_speed, this.min_speed);
+        this.vel = init_vel.limit(this.maxSpeed, this.minSpeed);
+
         // 历史速度值
         this._vel_history = new buckets.Queue();
         // 无人机是否被击落
         this.dead = false;
         // 无人机飞行模式
-        this.fly_mode = "normal";
+        this.flyMode = "normal";
         // 上一次无人机飞行模式
-        this.last_fly_mode = this.fly_mode;
+        this.lastFlyMode = this.flyMode;
     }
 
+    // 返回绘制的形状参数
     get shape() {
+        // 无人机朝向, 旋转画布, 保证跟无人机速度一致
         const theta = Math.atan2(this.vel.x, this.vel.y);
         this.angle = theta
         return {
@@ -59,13 +52,13 @@ export class UAV {
             id: this.id,
             position: this.position.toArray(),
             zlevel: this.zlevel,
-            rotation: [this.angle , 0, 0],
+            rotation: [this.angle, 0, 0],
             scale: [1, 1, 0, 0],
             // rotation: [2 * Math.PI, 0, 0],
             __needTransform: true,  // 需要旋转
             hoverable: true,
             style: {
-                w: 15,
+                w: 5,
                 x: 0,
                 y: 0,
                 brushType: 'both',
@@ -95,6 +88,14 @@ export class UAV {
         this.current_target = obj;
     }
 
+    // 计算无人机所有的朝向
+    calcAllOrient(flock, type = 'fast') {
+        // 计算避免无人机之间相撞的力
+        this.calcAvoidCrushOrient(flock)
+        // 计算朝着目标飞行的力
+        this.calcTargetForce(type)
+    }
+
     /**
      *
      * @param type
@@ -104,19 +105,38 @@ export class UAV {
      * "navigate": 加速或者减速到巡航速度,并保持
      * "slow": 减速到最低速度并保持
      */
-    fly(type = "fast") {
-        if (!["fast", "equal", "navigate", "slow"].includes(type)) {
-            console.log("警告: 传入的飞行类型type不属于规定类型");
-            type = "fast";
+    fly() {
+        // 朝向向量总和
+        let orientSum = undefined;
+        // 获取orientPool中的每一类朝向
+        for (let orientType in this._orientPool) {
+            // 每一类加速度是一个列表
+            const orientList = this._orientPool[orientType]
+            for (let orient of orientList) {
+                // 加速度加到加速度总和中
+                orientSum = orientSum || new Vector(0, 0)
+                orientSum.iadd(orient)
+            }
         }
-        // 只有当无人机有目标时,才更新速度
-        if (this.fly_pos !== undefined) {
-            this.transFlyMode();
-            // 获取期望的加速度
-            let acc_wish = this.getAcc(type);
-            let acc = this.limitAcc(acc_wish);
+        this._orientPool = {}
+        if (orientSum) {
+            // 获得符号位,逆时针为正, 顺时针为负
+            let mark = this.vel.sinAngle(orientSum)
+            // 判断方向是否正确
+            let orient = this.vel.cosAngle(orientSum)
+            mark = mark < 0 ? -1 : 1
+            if(orient > 0.995) mark = 0
+            // 计算角度值
+            const angle = Math.acos(this.vel.cosAngle(orientSum)) * 180 / Math.PI
+            if(angle <= 3){
+                this.vel = this.vel.rotate(mark * angle)
+            }else{
+                this.vel = this.vel.rotate(mark * 3)
+            }
+
+
             // 更新速度
-            this.vel = this.vel.add(acc);
+            // this.vel = this.vel.add(acc);
         }
         // 将速度加入历史值,如果保存数目大于5000, 则删除掉之前的
         this._vel_history.add(this.vel);
@@ -136,18 +156,18 @@ export class UAV {
         let e = this.fly_pos.sub(this.position);
         let cos_value = this.vel.cosAngle(e);
         if (cos_value < 0.1) {
-            if (this.last_fly_mode === "normal") {
+            if (this.lastFlyMode === "normal") {
                 this.setCircle();
             }
-            this.fly_mode = "circle";
+            this.flyMode = "circle";
         } else if (cos_value > 0.35) {
-            if (this.last_fly_mode === "circle") {
+            if (this.lastFlyMode === "circle") {
                 this.circle_point = null;
             }
-            this.fly_mode = "normal";
+            this.flyMode = "normal";
         }
         // 将飞行模式存入历史记录
-        this.last_fly_mode = this.fly_mode;
+        this.lastFlyMode = this.flyMode;
     }
 
     /**
@@ -170,7 +190,7 @@ export class UAV {
         // todo 转弯系数
         let steer_index = 18.0;
         // 速度系数
-        let vel_index = this.vel.mag() < this.min_speed ? this.min_speed : this.vel.mag();
+        let vel_index = this.vel.mag() < this.minSpeed ? this.minSpeed : this.vel.mag();
         let pos_trans = steer_acc.unit().mul(vel_index * steer_index);
         // todo 绕圈飞行的中心点
         this.circle_point = this.position.add(pos_trans);
@@ -189,9 +209,9 @@ export class UAV {
         // 获取目标位置
         let target_pos = null;
         // 如果是正常情况,目标就是target,如果是绕圈模式,目标则是圆心
-        if (this.fly_mode === "normal") {
+        if (this.flyMode === "normal") {
             target_pos = this.fly_pos;
-        } else if (this.fly_mode === "circle") {
+        } else if (this.flyMode === "circle") {
             target_pos = this.circle_point;
         }
         // 获得无人机当前位置到目标位置的向量
@@ -207,7 +227,7 @@ export class UAV {
         let wish_e = {};
         switch (type) {
             case "fast": {
-                wish_e = unit_e.mul(this.max_speed);
+                wish_e = unit_e.mul(this.maxSpeed);
                 break;
             }
             case "equal": {
@@ -215,11 +235,11 @@ export class UAV {
                 break
             }
             case "navigate": {
-                wish_e = unit_e.mul(this.navigate_speed);
+                wish_e = unit_e.mul(this.navigateSpeed);
                 break;
             }
             case "slow": {
-                wish_e = unit_e.mul(this.min_speed);
+                wish_e = unit_e.mul(this.minSpeed);
                 break;
             }
         }
@@ -228,14 +248,45 @@ export class UAV {
         return wish_acc
     }
 
+    // 避免撞到其他飞机朝向
+    calcAvoidCrushOrient(flock) {
+        const sepRange = config.uav.sepRange  // 从配置项中获取无人机距离
+        for (let id in flock) {
+            if (id === this.id) continue
+            const uav2 = flock[id]  // 其他无人机
+            const d = this.position.euc2d(uav2.position)  // 获得两架无人机的距离
+            // 如果当前无人机到其他无人机的距离小于
+            if (d <= sepRange) {
+                // 得到从其他无人机指向本机的向量, 这是避免碰撞的速度朝向
+                const avoidOrient = this.position.sub(uav2.position)
+                this._orientPool['avoid'] = this._orientPool['avoid'] || []
+                this._orientPool['avoid'].push(avoidOrient.unit())
+            }
+        }
+    }
+
+    // 向目标飞的加速度
+    calcTargetForce(type) {
+        if (!["fast", "equal", "navigate", "slow"].includes(type)) {
+            console.log("警告: 传入的飞行类型type不属于规定类型");
+            type = "fast";
+        }
+        if (this.fly_pos){
+            // 这是往目标飞行的朝向
+            const targetOrient = this.fly_pos.sub(this.position)
+            this._orientPool['target'] = this._orientPool['target'] || []
+            this._orientPool['target'].push(targetOrient.unit())
+        }
+    }
+
     // 限制加速度
     limitAcc(acc) {
         // 加速度在前进方向的大小
         let forward_vector = this.vel.forward(acc);
-        forward_vector.ilimit(this.max_push_force, 0);
+        forward_vector.ilimit(this.maxPushForce, 0);
         // 加速度在左右方向的大小
         let steer_acc = this.vel.steer(acc);
-        steer_acc.ilimit(this.max_steer_force, 0);
+        steer_acc.ilimit(this.maxSteerForce, 0);
         return forward_vector.add(steer_acc);
     };
 
@@ -390,7 +441,7 @@ export class Gyroplane {
         let vel_x = Math.sin(angle / 180 * PI) * 0.01;  // x方向的初始速度大小为巡航速度
         let vel_y = Math.cos(angle / 180 * PI) * 0.01;  // y方向的初始速度大小为巡航速度
         let init_vel = new Vector(vel_x, vel_y);
-        this.vel = init_vel.limit(this.max_speed, this.min_speed);
+        this.vel = init_vel.limit(this.maxSpeed, this.minSpeed);
         // 历史速度值
         this._vel_history = new buckets.Queue();
         // 无人机是否被击落
@@ -526,7 +577,7 @@ export class Gyroplane {
         let wish_e = {};
         switch (type) {
             case "fast": {
-                wish_e = unit_e.mul(this.max_speed);
+                wish_e = unit_e.mul(this.maxSpeed);
                 break;
             }
             case "equal": {
@@ -534,11 +585,11 @@ export class Gyroplane {
                 break
             }
             case "navigate": {
-                wish_e = unit_e.mul(this.navigate_speed);
+                wish_e = unit_e.mul(this.navigateSpeed);
                 break;
             }
             case "slow": {
-                wish_e = unit_e.mul(this.min_speed);
+                wish_e = unit_e.mul(this.minSpeed);
                 break;
             }
         }
@@ -557,10 +608,10 @@ export class Gyroplane {
     limitAcc(acc) {
         // 加速度在前进方向的大小
         let forward_vector = this.vel.forward(acc);
-        forward_vector.ilimit(this.max_push_force, 0);
+        forward_vector.ilimit(this.maxPushForce, 0);
         // 加速度在左右方向的大小
         let steer_acc = this.vel.steer(acc);
-        steer_acc.ilimit(this.max_steer_force, 0);
+        steer_acc.ilimit(this.maxSteerForce, 0);
         return forward_vector.add(steer_acc);
     };
 

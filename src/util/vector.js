@@ -1,3 +1,5 @@
+import numeric from 'numeric'
+
 /**
  * 二维向量类, 包含向量的各类计算方法
  * @param x
@@ -174,5 +176,14 @@ export default class Vector {
     // 转换为数组
     toArray(){
         return [this.x, this.y]
+    }
+
+    // 向量旋转角度a, a为角度值, 逆时针为正,顺时针为负, 返回值为旋转后的值
+    rotate(a){
+        const angle = a / 180 * Math.PI
+        const cos = Math.cos(angle)
+        const sin = Math.sin(angle)
+        let transMatrix = [[cos, sin],[-1*sin, cos]]
+        return new Vector(numeric.dot([this.x, this.y],transMatrix))
     }
 }

@@ -3649,6 +3649,11 @@ nth-check@~1.0.1:
   dependencies:
     boolbase "~1.0.0"
 
+numeric@^1.2.6:
+  version "1.2.6"
+  resolved "https://registry.npm.taobao.org/numeric/download/numeric-1.2.6.tgz#765b02bef97988fcf880d4eb3f36b80fa31335aa"
+  integrity sha1-dlsCvvl5iPz4gNTrPza4D6MTNao=
+
 object-assign@^4.0.1, object-assign@^4.1.0, object-assign@^4.1.1:
   version "4.1.1"
   resolved "https://registry.npm.taobao.org/object-assign/download/object-assign-4.1.1.tgz#2109adc7965887cfc05cbbd442cac8bfbb360863"
