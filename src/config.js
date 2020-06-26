@@ -1,14 +1,14 @@
 export default {
     // 固定翼无人机设置
     uav: {
-        maxSpeed: 1.75,              // 最大速度
-        minSpeed: 0.4,               // 维持飞行的最小速度
-        navigateSpeed: 1.25,         // 巡航速度
-        maxPushForce: 0.17,          // 前进最大加速度
-        maxSteerForce: 0.02,         // 转向最大加速度
+        maxSpeed: 1.25,              // 最大速度
+        minSpeed: 0.5,               // 维持飞行的最小速度
+        navigateSpeed: 1.00,         // 巡航速度
+        maxPushForce: 0.02,          // 前进最大加速度
 
-        sepRange: 60,                // 周围无人机进入多少范围进行规避
+        sepRange: 30,                // 周围无人机进入多少范围进行规避
         detectRange: 100,            // 目标探测范围
+        maxSteerAngle: 2,                // 无人机每帧最大转弯角度, 单位是度(°)
     },
 
     gridSize: [10,10],               // 缺省网格数量

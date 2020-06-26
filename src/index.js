@@ -12,32 +12,32 @@ si.storage.addUAV({
     strategy: 'random',
 })
 
-// si.storage.addUAV({
-//     id: si.storage.newId(),
-//     zlevel: 2,
-//     position: [0, 400],  // 无人机位置
-//     angle: 0,
-//     v: 1,
-//     strategy: 'random',
-// })
-//
-// si.storage.addUAV({
-//     id: si.storage.newId(),
-//     zlevel: 2,
-//     position: [0, 100],  // 无人机位置
-//     angle: 0,
-//     v: 1,
-//     strategy: 'random',
-// })
-//
-// si.storage.addUAV({
-//     id: si.storage.newId(),
-//     zlevel: 2,
-//     position: [0, 500],  // 无人机位置
-//     angle: 0,
-//     v: 1,
-//     strategy: 'random',
-// })
+si.storage.addUAV({
+    id: si.storage.newId(),
+    zlevel: 2,
+    position: [0, 400],  // 无人机位置
+    angle: 0,
+    v: 1,
+    strategy: 'random',
+})
+
+si.storage.addUAV({
+    id: si.storage.newId(),
+    zlevel: 2,
+    position: [0, 100],  // 无人机位置
+    angle: 0,
+    v: 1,
+    strategy: 'random',
+})
+
+si.storage.addUAV({
+    id: si.storage.newId(),
+    zlevel: 2,
+    position: [0, 500],  // 无人机位置
+    angle: 0,
+    v: 1,
+    strategy: 'random',
+})
 // 初始化网格
 si.storage.initGrid(si.painter.getWidth(), si.painter.getHeight())
 

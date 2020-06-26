@@ -9,37 +9,25 @@ export class UAV {
     constructor({id, position, angle, zlevel}) {
         this.id = id;  // 无人机ID号
         this.position = new Vector(position);  // 无人机位置
-        this._pos_history = new buckets.Queue();  // 经过的位置值
+        this._posHistory = new buckets.Queue();  // 经过的位置值
         this.size = 1;  // 无人机绘制大小
         this.zlevel = zlevel  // 无人机绘制所处的层次
         this.angle = angle
         this._orientPool = {}  // 无人机朝向合集
-
-        // 从配置项中取得无人机参数
-        const {
-            maxSpeed, minSpeed, navigateSpeed,
-            maxPushForce, maxSteerForce
-        } = config.uav
-        // 配置无人机飞行参数
-        this.maxSpeed = maxSpeed; // 极限最大速度
-        this.minSpeed = minSpeed; // 极限最小速度
-        this.navigateSpeed = navigateSpeed; // 巡航速度
-        this.maxPushForce = maxPushForce; // 水平最大加速度
-        this.maxSteerForce = maxSteerForce; // 法向最大加速度
-        // 无人机初始速度
-        let vel_x = Math.sin(angle / 180 * Math.PI) * this.navigateSpeed;  // x方向的初始速度大小为巡航速度
-        let vel_y = Math.cos(angle / 180 * Math.PI) * this.navigateSpeed;  // y方向的初始速度大小为巡航速度
-        let init_vel = new Vector(vel_x, vel_y);
-        this.vel = init_vel.limit(this.maxSpeed, this.minSpeed);
-
         // 历史速度值
-        this._vel_history = new buckets.Queue();
+        this._velHistory = new buckets.Queue();
         // 无人机是否被击落
         this.dead = false;
-        // 无人机飞行模式
-        this.flyMode = "normal";
-        // 上一次无人机飞行模式
-        this.lastFlyMode = this.flyMode;
+
+        this.init()
+    }
+
+    init(){
+        const navigateSpeed = config.uav.navigateSpeed
+        // 无人机初始速度
+        let vel_x = Math.sin(this.angle / 180 * Math.PI) * navigateSpeed;  // x方向的初始速度大小为巡航速度
+        let vel_y = Math.cos(this.angle / 180 * Math.PI) * navigateSpeed;  // y方向的初始速度大小为巡航速度
+        this.vel = new Vector(vel_x, vel_y);
     }
 
     // 返回绘制的形状参数
@@ -96,6 +84,49 @@ export class UAV {
         this.calcTargetForce(type)
     }
 
+    // 无人机转弯方法, 获得无人机转弯的角度, 相对于目标方向, 当前方向需要转弯的情况
+    steer(orientVel) {
+        const steerAngle = config.uav.maxSteerAngle  // 无人机转弯最大角度
+        // 获得符号位,逆时针为正, 顺时针为负
+        let mark = this.vel.sinAngle(orientVel)
+        mark = mark < 0 ? -1 : 1
+        // 判断方向是否正确, 先得到方向的cos值
+        let orientCos = this.vel.cosAngle(orientVel)
+        // 如果方向为0度正, 很接近1, 因为cos(0)=1, 则不需要再转了, 此时直接返回0度
+        if (orientCos > 0.998) return 0
+        // 否则计算角度值
+        const angle = Math.acos(orientCos) * 180 / Math.PI
+        // 返回转弯后的速度, 如果在角度范围内,则一次转过去
+        if (angle <= steerAngle) {
+            return mark * angle
+        } else {
+            // 否则只转成对应的角度
+            return mark * steerAngle
+        }
+    }
+
+    push(angle) {
+        const maxPushForce = config.uav.maxPushForce  // 最大油门/减速速度
+        const maxSpeed = config.uav.maxSpeed  // 最大速度
+        const minSpeed = config.uav.minSpeed  // 最小速度
+        const maxSteerAngle = config.uav.maxSteerAngle  // 最大转弯角度
+
+        let changeVel = this.vel.rotate(angle)  // 转弯后的速度
+        let absVel = this.vel.mag()  // 绝对速度
+        // 如果有转弯
+        if(Math.abs(angle) > 0.1){
+            // 根据角度获得系数, 如果转的角度越大, 则速度降的越低
+            const steerIndex = Math.abs(angle)/maxSteerAngle
+            absVel = Math.max(absVel-maxPushForce*steerIndex, minSpeed)
+            return changeVel.unit().mul(absVel)
+        }else{
+            absVel = Math.min(absVel+maxPushForce, maxSpeed)
+            return changeVel.unit().mul(absVel)
+        }
+
+    }
+
+
     /**
      *
      * @param type
@@ -120,133 +151,20 @@ export class UAV {
         }
         this._orientPool = {}
         if (orientSum) {
-            // 获得符号位,逆时针为正, 顺时针为负
-            let mark = this.vel.sinAngle(orientSum)
-            // 判断方向是否正确
-            let orient = this.vel.cosAngle(orientSum)
-            mark = mark < 0 ? -1 : 1
-            if(orient > 0.995) mark = 0
-            // 计算角度值
-            const angle = Math.acos(this.vel.cosAngle(orientSum)) * 180 / Math.PI
-            if(angle <= 3){
-                this.vel = this.vel.rotate(mark * angle)
-            }else{
-                this.vel = this.vel.rotate(mark * 3)
-            }
-
-
-            // 更新速度
-            // this.vel = this.vel.add(acc);
+            this.vel = this.push(this.steer(orientSum))
         }
         // 将速度加入历史值,如果保存数目大于5000, 则删除掉之前的
-        this._vel_history.add(this.vel);
-        if (this._vel_history.size() > 5000) this._vel_history.dequeue();
+        this._velHistory.add(this.vel);
+        if (this._velHistory.size() > 5000) this._velHistory.dequeue();
         // 更新无人机的位置
         this.position = this.position.add(this.vel);
         // 将速度加入历史值,如果保存数目大于5000, 则删除掉之前的
-        this._pos_history.add(this.position);
-        if (this._pos_history.size() > 5000) this._pos_history.dequeue();
+        this._posHistory.add(this.position);
+        if (this._posHistory.size() > 5000) this._posHistory.dequeue();
     }
 
-    /**
-     * 转换无人机飞行模式
-     */
-    transFlyMode() {
-        // 获得无人机当前位置到目标位置的向量
-        let e = this.fly_pos.sub(this.position);
-        let cos_value = this.vel.cosAngle(e);
-        if (cos_value < 0.1) {
-            if (this.lastFlyMode === "normal") {
-                this.setCircle();
-            }
-            this.flyMode = "circle";
-        } else if (cos_value > 0.35) {
-            if (this.lastFlyMode === "circle") {
-                this.circle_point = null;
-            }
-            this.flyMode = "normal";
-        }
-        // 将飞行模式存入历史记录
-        this.lastFlyMode = this.flyMode;
-    }
 
-    /**
-     * 设置为绕圈飞行模式,该方法的核心在于两点:
-     * ☆为目标,△为无人机,无人机方向为-→, 无人机到目标的方向是↙, 那么无人机到目标位置需要进行绕圈
-     * 绕圈的位置大致在◎位置, 该方法主要就是计算◎位置的坐标
-     *            △-→
-     *         ↙ ◎
-     *      ☆
-     */
-    setCircle() {
-        // 当前位置到目标的距离向量
-        let e = this.fly_pos.sub(this.position);
-        // 距离向量在速度方向上的垂直投影
-        let steer_acc = this.vel.steer(e);
-        // 垂直向量的相反值
-        if (e.mag() < 30) {
-            steer_acc.imul(-1);
-        }
-        // todo 转弯系数
-        let steer_index = 18.0;
-        // 速度系数
-        let vel_index = this.vel.mag() < this.minSpeed ? this.minSpeed : this.vel.mag();
-        let pos_trans = steer_acc.unit().mul(vel_index * steer_index);
-        // todo 绕圈飞行的中心点
-        this.circle_point = this.position.add(pos_trans);
-    }
 
-    /**
-     * 计算加速度
-     * @param x
-     * @param y
-     * @param type
-     */
-    getAcc(type) {
-        if (this.fly_pos == undefined) {
-            alert("请先设置无人机目标");
-        }
-        // 获取目标位置
-        let target_pos = null;
-        // 如果是正常情况,目标就是target,如果是绕圈模式,目标则是圆心
-        if (this.flyMode === "normal") {
-            target_pos = this.fly_pos;
-        } else if (this.flyMode === "circle") {
-            target_pos = this.circle_point;
-        }
-        // 获得无人机当前位置到目标位置的向量
-        let e = target_pos.sub(this.position);
-        // 如果向量离得太近,则加速度为0
-        if (e.mag() <= 0.005) {
-            return new Vector(0, 0);
-        }
-        // 反之则根据加速类型计算应该有的加速度
-        // 1. 计算单位速度
-        let unit_e = e.unit();
-        // 2. 根据类型计算期望的速度
-        let wish_e = {};
-        switch (type) {
-            case "fast": {
-                wish_e = unit_e.mul(this.maxSpeed);
-                break;
-            }
-            case "equal": {
-                wish_e = unit_e.mul(this.vel.mag());
-                break
-            }
-            case "navigate": {
-                wish_e = unit_e.mul(this.navigateSpeed);
-                break;
-            }
-            case "slow": {
-                wish_e = unit_e.mul(this.minSpeed);
-                break;
-            }
-        }
-        // 期望速度减去当前速度,得到期望的加速度
-        let wish_acc = wish_e.sub(this.vel);
-        return wish_acc
-    }
 
     // 避免撞到其他飞机朝向
     calcAvoidCrushOrient(flock) {
@@ -271,24 +189,13 @@ export class UAV {
             console.log("警告: 传入的飞行类型type不属于规定类型");
             type = "fast";
         }
-        if (this.fly_pos){
+        if (this.fly_pos) {
             // 这是往目标飞行的朝向
             const targetOrient = this.fly_pos.sub(this.position)
             this._orientPool['target'] = this._orientPool['target'] || []
             this._orientPool['target'].push(targetOrient.unit())
         }
     }
-
-    // 限制加速度
-    limitAcc(acc) {
-        // 加速度在前进方向的大小
-        let forward_vector = this.vel.forward(acc);
-        forward_vector.ilimit(this.maxPushForce, 0);
-        // 加速度在左右方向的大小
-        let steer_acc = this.vel.steer(acc);
-        steer_acc.ilimit(this.maxSteerForce, 0);
-        return forward_vector.add(steer_acc);
-    };
 
     // 靠近目标的属性
     get near() {
@@ -305,110 +212,13 @@ export class UAV {
 
     // 获得速度历史记录
     get vel_history() {
-        return this._vel_history.toArray();
+        return this._velHistory.toArray();
     }
 
     // 获得位置历史记录
     get pos_history() {
-        return this._pos_history.toArray();
+        return this._posHistory.toArray();
     }
-
-    // 无人机的绘制
-    draw(canvas, debug = false, theme = "dark", is_loop = true) {
-        if (this.dead) {
-            return
-        }
-        let ctx = canvas.getContext("2d");
-        let width = canvas.width;
-        let height = canvas.height;
-        let vehicle_color = "#FFF";  // 无人机默认颜色
-        let radar_color = "#FFF";  // 雷达颜色
-        // 浅色条件下的无人机颜色
-        if (theme === "white") {
-            vehicle_color = "#663366";
-            radar_color = "#666";
-        }
-        //在有限的空间尽可能循环
-        if (is_loop) {
-            if (this.position.x < 0) this.position.x = width;
-            if (this.position.x > width) this.position.x = 0;
-            if (this.position.y < 0) this.position.y = height;
-            if (this.position.y > height) this.position.y = 0;
-        }
-        // 绘制参数
-        let wing_span = 25 * this.size;
-        let plane_length = 23 * this.size;
-
-        // 无人机绘制的朝向
-        let theta = Math.atan2(this.vel.y, this.vel.x);
-        ctx.save();
-        // canvas平移和旋转
-        ctx.translate(this.position.x, this.position.y);
-        ctx.rotate(theta);
-        // 绘制无人机
-        ctx.beginPath();
-
-        // 绘制无人机
-        /* Bico */
-        ctx.moveTo(1, -wing_span / 6.666);
-        ctx.lineTo(wing_span / 2 - 1, 0);
-        ctx.lineTo(1, wing_span / 6.666);
-
-        //ctx.moveTo(0, 0) // Fica mais legal o stroke
-        //ctx.moveTo(3, 0)
-        /* Asa direita */
-        ctx.lineTo(wing_span / 10, wing_span / 10);
-        ctx.lineTo(wing_span / 5, wing_span / 5);
-        ctx.lineTo(0, wing_span / 2);
-        ctx.lineTo(-wing_span / 18, wing_span / 2.222);
-        ctx.lineTo(wing_span / 36, wing_span / 4);
-        ctx.lineTo(0, wing_span / 10);
-
-        /* Cauda */
-        var xx = wing_span / 72;
-        ctx.lineTo(-wing_span / 4, xx);
-        ctx.lineTo(-wing_span / 3, xx);
-        ctx.lineTo(-wing_span / 2, wing_span / 6);
-        ctx.lineTo(-wing_span / 2, -wing_span / 6);
-        ctx.lineTo(-wing_span / 3, -xx);
-        ctx.lineTo(-wing_span / 4, -xx);
-
-        ctx.lineTo(0, -wing_span / 10);
-
-        /* Asa esquerda */
-        ctx.lineTo(plane_length / 36, -wing_span / 4);
-        ctx.lineTo(-plane_length / 18, -wing_span / 2.222);
-        ctx.lineTo(0, -wing_span / 2);
-        ctx.lineTo(wing_span / 5, -wing_span / 5);
-        ctx.lineTo(wing_span / 10, -wing_span / 10);
-
-        ctx.closePath();
-        // 用配置的无人机颜色进行填充
-        ctx.fillStyle = vehicle_color;
-        ctx.fill();
-
-        if (debug) {
-            // 绘制飞机雷达
-            ctx.strokeStyle = radar_color;
-            ctx.moveTo(0, 0);
-            //ctx.arc(0, 0, simulation.bird_neighborhood, 0, 2 * Math.PI, false)
-            ctx.arc(0, 0, simulation.leader_radarRange,
-                0, 2 * Math.PI, false);
-            ctx.arc(0, 0, simulation.leader_separateRange,
-                0, 2 * Math.PI, false);
-            ctx.stroke();
-
-            // 绘制飞机等级, 如果有飞机等级才绘制
-            if (typeof (this.leaderGrade) !== "undefined" && typeof this.leaderRank !== "undefined") {
-                var leaderName = "(" + this.leaderGrade + "," + this.leaderRank + ")";
-                ctx.font = "13pt Arial";
-                ctx.fillStyle = "#F3F3F3";
-                ctx.fillText(leaderName, -15, -20);
-            }
-
-        }
-        ctx.restore();
-    };
 }
 
 /**

@@ -22,11 +22,9 @@ export default class Interaction{
             const uav = flock[id]
             uav.hasFlyTarget() || uav.setFlyPos(200, 200)
             if(uav.near){
-                const targetPosition = [100+100 * Math.random(), 100+100* Math.random()]
+                const targetPosition = [100+300 * Math.random(), 100+300* Math.random()]
                 uav.setFlyPos(targetPosition[0],targetPosition[1])
             }
-
-
             uav.calcAllOrient(flock)
             uav.fly()
             this.storage.setChangedZlevle(uav.zlevel)
