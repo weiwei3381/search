@@ -3,6 +3,7 @@ import Cell from '../model/Cell'
 import {Target} from '../model/Target'
 import Grid from '../storage/grid'
 import config from '../config'
+import Threat from '../model/Threat'
 
 export default class Storage {
     constructor() {
@@ -18,7 +19,7 @@ export default class Storage {
 
         this._flock = {}  // 无人机群
         this._targets = {}  // 所有目标
-        this._radars = {}   // 所有雷达类目标
+        this._threats = {}   // 所有雷达类目标
         this._obstacles = {}  // 所有障碍物类目标
     }
 
@@ -31,31 +32,21 @@ export default class Storage {
     }
 
     addUAV(params) {
-        // 设置默认属性, 然后用params将其覆盖
-        const prop = {
-            position: [0, 0],
-            angle: 0,
-            zlevel: 2,
-            v: 0,
-            ...params
-        }
-        const uav = new UAV(prop)  // 创建无人机
+        const uav = new UAV(params)  // 创建无人机
         this.addElement(params.id, uav)  // 在元素集合中增加uav
         this._flock[params.id] = uav  // 在无人机群中增加uav
     }
 
     addTarget(params) {
-        // 覆盖默认属性
-        const prop = {
-            position: [0, 0],
-            angle: 0,
-            v: 0,
-            zlevel: 1,
-            ...params
-        }
-        const target = new Target(prop)
+        const target = new Target(params)
         this.addElement(params.id, target)  // 增加元素
         this._targets[params.id] = target
+    }
+
+    addThreat(params){
+        const threat = new Threat(params)
+        this.addElement(params.id, threat)
+        this._threats[params.id] = threat
     }
 
     // 初始化网格
@@ -193,6 +184,10 @@ export default class Storage {
 
     getTargets(){
         return this._targets
+    }
+
+    getThreats(){
+        return this._threats
     }
 
     getMaxZlevel() {

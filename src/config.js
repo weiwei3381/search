@@ -7,11 +7,21 @@ export default {
         maxPushForce: 0.02,          // 前进最大加速度
 
         sepRange: 30,                // 周围无人机进入多少范围进行规避
+        threatRange: 50,             // 距离威胁多少范围开始进行闪避
         detectRange: 100,            // 目标探测范围
-        maxSteerAngle: 2,                // 无人机每帧最大转弯角度, 单位是度(°)
+        maxSteerAngle: 2,            // 无人机每帧最大转弯角度, 单位是度(°)
+
+        zlevel: 2,                   // 无人机的zlevel
+    },
+    threat:{
+        r: 5,                        // 威胁的中心大小
+        zlevel: 1,                   // 威胁的zlevel
+    },
+    target:{
+        zlevel: 1                    // 目标的zlevel
     },
 
-    gridSize: [10,10],               // 缺省网格数量
+    gridSize: [20,20],               // 缺省网格数量
     catchBrushException: false,      // 是否捕获图形绘制的错误
     /**
      * debug日志选项：catchBrushException为true下有效

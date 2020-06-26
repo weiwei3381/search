@@ -668,7 +668,7 @@ export class Flock {
                     }
                 }
                 for (let uav of uav_list) {
-                    if (uav.hasFlyTarget() && !uav.current_target.is_dead) continue;
+                    if (uav.hasFlyTarget() && !uav.currentTarget.is_dead) continue;
                     uav.setTarget(near_target);
                     uav.setFlyPos(near_target.pos.x, near_target.pos.y);
                 }

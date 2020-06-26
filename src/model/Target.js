@@ -1,13 +1,14 @@
 import Vector from '../util/vector'
+import config from '../config'
 
 class Target {
-    constructor({id, position, v, angle, zlevel, changeMove}) {
+    constructor({id, position=[0, 0], v=0, angle=0, zlevel, onStep}) {
         this.id = id;  // 目标的id值
         this.position = new Vector(position);  // 目标的所处位置
         this.v = v  // 目标速度
         this.angle = angle  // 目标朝向
-        this.zlevel = zlevel  // 所处canvas层
-        this.changeMove = changeMove  // 改变移动情况
+        this.zlevel = zlevel || config.target.zlevel  // 所处canvas层
+        this.onStep = onStep  // 改变移动情况
 
         // 目标是否正在被无人机搜索
         this.is_find = false;
@@ -37,14 +38,20 @@ class Target {
         }
     }
 
-    move(stepNum){
-        if(this.changeMove && typeof this.changeMove === 'function'){
-            this.changeMove(stepNum)  // 调用移动改变的方法
-            let vel_x = Math.sin(this.angle / 180 * Math.PI) * this.v;  // x方向的初始速度大小为巡航速度
-            let vel_y = Math.cos(this.angle / 180 * Math.PI) * this.v;  // y方向的初始速度大小为巡航速度
-            // 更新目标位置
-            this.position.x += vel_x
-            this.position.y += vel_y
+    // 每步的调用, 如果有调用onstep方法, 则返回真, 用来判断需不需要更新该层
+    step(stepNum){
+        if(this.onStep && typeof this.onStep === 'function'){
+            // 调用每步的回调函数
+            this.onStep(stepNum)
+            if(this.v){
+                // 更新速度和位置信息
+                let vel_x = Math.sin(this.angle / 180 * Math.PI) * this.v;  // x方向的速度
+                let vel_y = Math.cos(this.angle / 180 * Math.PI) * this.v;  // y方向的速度
+                // 更新目标位置
+                this.position.x += vel_x
+                this.position.y += vel_y
+            }
+            return true
         }
     }
 

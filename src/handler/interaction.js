@@ -9,7 +9,8 @@ export default class Interaction{
         ++this.stepNum
         // 交互主要是无人机先飞行
         this.uavUpdate(callback)
-        this.targetMove(callback)
+        this.targetUpdate(callback)
+        this.threatUpdate(callback)
         // 然后各个交互物与无人机之间的关系
         this.gridUpdate(callback)
 
@@ -18,14 +19,15 @@ export default class Interaction{
     // 无人机飞行
     uavUpdate(callback){
         const flock = this.storage.getFlock()
+        const threats = this.storage.getThreats()
         for(let id in flock){
             const uav = flock[id]
             uav.hasFlyTarget() || uav.setFlyPos(200, 200)
-            if(uav.near){
+            if(uav.near()){
                 const targetPosition = [100+300 * Math.random(), 100+300* Math.random()]
                 uav.setFlyPos(targetPosition[0],targetPosition[1])
             }
-            uav.calcAllOrient(flock)
+            uav.calcAllOrient(flock, threats)
             uav.fly()
             this.storage.setChangedZlevle(uav.zlevel)
             callback(uav)
@@ -42,13 +44,26 @@ export default class Interaction{
         }
     }
 
-    targetMove(callback){
+    targetUpdate(callback){
         const targets = this.storage.getTargets()
         for(let id in targets){
             const target = targets[id]
-            target.move(this.stepNum)
-            this.storage.setChangedZlevle(target.zlevel)
-            callback(target)
+            if(target.step(this.stepNum)){
+                this.storage.setChangedZlevle(target.zlevel)
+                callback(target)
+            }
+        }
+    }
+
+    threatUpdate(callback){
+        const threats = this.storage.getThreats()
+        for(let id in threats){
+            const threat = threats[id]
+            if(threat.step(this.stepNum)){
+                this.storage.setChangedZlevle(threat.zlevel)
+                callback(threat)
+            }
+
         }
     }
 }

@@ -47,10 +47,23 @@ si.storage.addTarget({
     zlevel: 1,
     v: 0,
     angle: 0,
-    // 改变速度大小和方向的方法
-    changeMove(step){
+    // 每一步的回调函数
+    // onStep(step){
+    //     if(step % 200 === 0){  // 每隔200次迭代修改一次
+    //         this.v = Math.random() * 0.3
+    //         this.angle = Math.random() * 360
+    //     }
+    // }
+})
+
+si.storage.addThreat({
+    id: si.storage.newId(),
+    position: [200, 200],
+    range: 50,
+    // 每一步的回调函数
+    onStep(step){
         if(step % 200 === 0){  // 每隔200次迭代修改一次
-            this.v = Math.random() * 0.3
+            this.v = Math.random() * 0.2
             this.angle = Math.random() * 360
         }
     }

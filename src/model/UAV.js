@@ -1,32 +1,35 @@
 import Vector from "../util/vector";
 import buckets from "buckets-js";
 import config from '../config'
+import {Target} from './Target'
 
 /**
  * 固定翼无人机
  */
 export class UAV {
-    constructor({id, position, angle, zlevel}) {
+    constructor({id, position=[0,0], angle=0, v=0, zlevel}) {
         this.id = id;  // 无人机ID号
         this.position = new Vector(position);  // 无人机位置
+        this.v = v  // 无人机初始速度
+        this.angle = angle  // 无人机初始角度
+        this.zlevel = zlevel || config.uav.zlevel  // 无人机绘制所处的层次
+
+
         this._posHistory = new buckets.Queue();  // 经过的位置值
-        this.size = 1;  // 无人机绘制大小
-        this.zlevel = zlevel  // 无人机绘制所处的层次
-        this.angle = angle
+
         this._orientPool = {}  // 无人机朝向合集
         // 历史速度值
         this._velHistory = new buckets.Queue();
         // 无人机是否被击落
         this.dead = false;
 
-        this.init()
+        this.init()  // 无人机初始化
     }
 
     init(){
-        const navigateSpeed = config.uav.navigateSpeed
         // 无人机初始速度
-        let vel_x = Math.sin(this.angle / 180 * Math.PI) * navigateSpeed;  // x方向的初始速度大小为巡航速度
-        let vel_y = Math.cos(this.angle / 180 * Math.PI) * navigateSpeed;  // y方向的初始速度大小为巡航速度
+        let vel_x = Math.sin(this.angle / 180 * Math.PI) * this.v;  // x方向的初始速度大小为巡航速度
+        let vel_y = Math.cos(this.angle / 180 * Math.PI) * this.v;  // y方向的初始速度大小为巡航速度
         this.vel = new Vector(vel_x, vel_y);
     }
 
@@ -72,16 +75,21 @@ export class UAV {
         this.fly_pos = new Vector(x, y);
     }
 
-    setTarget(obj) {
-        this.current_target = obj;
+    setTarget(target) {
+        this.currentTarget = target;
+        if(target instanceof Target){
+            this.fly_pos = new Vector(target.position.x, target.position.y)
+        }
     }
 
     // 计算无人机所有的朝向
-    calcAllOrient(flock, type = 'fast') {
-        // 计算避免无人机之间相撞的力
+    calcAllOrient(flock, threats, type = 'fast') {
+        // 计算避免无人机之间相撞的速度
         this.calcAvoidCrushOrient(flock)
-        // 计算朝着目标飞行的力
+        // 计算朝着目标飞行的速度
         this.calcTargetForce(type)
+        // 计算避免威胁的速度
+        this.calcAvoidThreatOrient(threats)
     }
 
     // 无人机转弯方法, 获得无人机转弯的角度, 相对于目标方向, 当前方向需要转弯的情况
@@ -183,6 +191,21 @@ export class UAV {
         }
     }
 
+    calcAvoidThreatOrient(threats){
+        const threatRange = config.uav.threatRange  // 威胁范围
+        // 每个威胁进行遍历
+        for(let id in threats){
+            const threat = threats[id]
+            const dist = this.position.euc2d(threat.position)
+            if(dist < (threatRange + threat.range)){
+                // 得到从威胁指向本机的向量, 这是避免碰撞的速度朝向
+                const avoidOrient = this.position.sub(threat.position)
+                this._orientPool['avoid'] = this._orientPool['avoid'] || []
+                this._orientPool['avoid'].push(avoidOrient.unit())
+            }
+        }
+    }
+
     // 向目标飞的加速度
     calcTargetForce(type) {
         if (!["fast", "equal", "navigate", "slow"].includes(type)) {
@@ -198,7 +221,7 @@ export class UAV {
     }
 
     // 靠近目标的属性
-    get near() {
+    near() {
         if (this.fly_pos === undefined) {
             return false;
         }
